@@ -1,0 +1,55 @@
+{
+  "services": [
+    {
+      "type": "app",
+      "data": {
+        "projectName": "n8n-custom",
+        "serviceName": "n8n",
+        "source": {
+          "type": "github",
+          "owner": "daaty",
+          "repo": "n8n-hosting",
+          "branch": "easypanel-custom-n8n",
+          "buildType": "dockerfile",
+          "dockerfile": "docker-compose/withPostgres/Dockerfile"
+        },
+        "env": "DB_TYPE=postgresdb\nDB_POSTGRESDB_HOST=n8n-custom_postgres\nDB_POSTGRESDB_PORT=5432\nDB_POSTGRESDB_DATABASE=n8n\nDB_POSTGRESDB_USER=n8n_user\nDB_POSTGRESDB_PASSWORD=sua_senha_forte_123\nN8N_BASIC_AUTH_ACTIVE=true\nN8N_BASIC_AUTH_USER=admin\nN8N_BASIC_AUTH_PASSWORD=sua_senha_admin_123\nWEBHOOK_URL=https://$(PRIMARY_DOMAIN)\nGENERIC_TIMEZONE=America/Sao_Paulo\nN8N_DEFAULT_BINARY_DATA_MODE=filesystem\nN8N_PERSIST_BINARY_DATA_TTL=1440\nN8N_SECURE_COOKIE=false\nN8N_DISABLE_UI=false\nN8N_LOG_LEVEL=info\nPUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true\nPUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser",
+        "deploy": {
+          "replicas": 1,
+          "command": null,
+          "zeroDowntime": true
+        },
+        "domains": [
+          {
+            "host": "n8n.seudominio.com",
+            "https": true,
+            "port": 5678,
+            "path": "/",
+            "middlewares": [],
+            "certificateResolver": "",
+            "wildcard": false,
+            "internalProtocol": "http"
+          }
+        ],
+        "mounts": [
+          {
+            "type": "volume",
+            "name": "n8n-data",
+            "mountPath": "/home/node/.n8n"
+          }
+        ]
+      }
+    },
+    {
+      "type": "postgres",
+      "data": {
+        "projectName": "n8n-custom",
+        "serviceName": "postgres",
+        "image": "pgvector/pgvector:pg16",
+        "password": "sua_senha_forte_123",
+        "username": "n8n_user",
+        "database": "n8n"
+      }
+    }
+  ]
+}
