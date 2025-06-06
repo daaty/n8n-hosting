@@ -34,8 +34,8 @@ RUN npm install -g --no-audit --no-fund \
     pg@latest \
     pgvector@latest
 
-# Install Playwright browsers (only Chromium to save space)
-RUN npx playwright install chromium --with-deps
+# Install Playwright browsers (only Chromium, without deps since we already have Chromium)
+RUN npx playwright install chromium
 
 # Create directory for custom nodes and set permissions
 RUN mkdir -p /home/node/.n8n/nodes \
