@@ -19,12 +19,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - n8n-network
 
   n8n:
     image: n8nio/n8n:latest
     restart: always
+    user: root
     environment:
       # Database Configuration
       DB_TYPE: postgresdb
@@ -43,15 +42,11 @@ services:
       WEBHOOK_URL: ${WEBHOOK_URL:-https://n8n.seudominio.com}
       GENERIC_TIMEZONE: America/Sao_Paulo
       N8N_LOG_LEVEL: info
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
       
-      # Binary Data
-      N8N_DEFAULT_BINARY_DATA_MODE: filesystem
-      N8N_PERSIST_BINARY_DATA_TTL: 1440
-      
-      # Security
-      N8N_SECURE_COOKIE: "false"
-      N8N_DISABLE_UI: "false"
+      # Puppeteer/Playwright
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
       
     ports:
       - "5678:5678"
@@ -60,26 +55,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - n8n-network
-    command: >
+    entrypoint: >
       sh -c "
-        echo 'Installing custom packages...' &&
-        npm install -g --no-audit --no-fund puppeteer playwright @playwright/test pg pgvector &&
         echo 'Installing system dependencies...' &&
-        apk add --no-cache chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont &&
-        echo 'Setting Puppeteer config...' &&
-        export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true &&
-        export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser &&
+        apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont python3 py3-pip build-base postgresql-dev git &&
+        echo 'Installing Node.js packages...' &&
+        npm install -g --no-audit --no-fund puppeteer@latest playwright@latest @playwright/test@latest pg@latest pgvector@latest &&
         echo 'Installing Playwright browsers...' &&
         npx playwright install chromium &&
-        echo 'Setting permissions...' &&
-        mkdir -p /home/node/.n8n &&
-        chown -R node:node /home/node/.n8n &&
-        echo 'Starting n8n...' &&
-        n8n start
+        echo 'Setting up directories...' &&
+        mkdir -p /home/node/.n8n /home/node/.cache/playwright &&
+        chown -R node:node /home/node/.n8n /home/node/.cache &&
+        echo 'Switching to node user and starting n8n...' &&
+        su node -c 'n8n start'
       "
-
-networks:
-  n8n-network:
-    driver: bridge

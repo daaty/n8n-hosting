@@ -4,6 +4,10 @@ volumes:
   db_storage:
   n8n_storage:
 
+networks:
+  n8n-network:
+    driver: bridge
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -14,16 +18,27 @@ services:
       POSTGRES_DB: n8n
     volumes:
       - db_storage:/var/lib/postgresql/data
+    networks:
+      - n8n-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h localhost -U n8n_user -d n8n']
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - n8n-network
+    # Configurações otimizadas para PostgreSQL
+    command: >
+      postgres -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
 
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     environment:
       # Database Configuration
@@ -43,15 +58,28 @@ services:
       WEBHOOK_URL: ${WEBHOOK_URL:-https://n8n.seudominio.com}
       GENERIC_TIMEZONE: America/Sao_Paulo
       N8N_LOG_LEVEL: info
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
       
       # Binary Data
       N8N_DEFAULT_BINARY_DATA_MODE: filesystem
       N8N_PERSIST_BINARY_DATA_TTL: 1440
       
-      # Security
+      # Security & Performance
       N8N_SECURE_COOKIE: "false"
       N8N_DISABLE_UI: "false"
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-your-encryption-key-here}
+      
+      # Executions
+      EXECUTIONS_TIMEOUT: 3600
+      EXECUTIONS_TIMEOUT_MAX: 3600
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_MAX_AGE: 336
+      
+      # Puppeteer/Playwright
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      PLAYWRIGHT_BROWSERS_PATH: /home/node/.cache/playwright
       
     ports:
       - "5678:5678"
@@ -62,24 +90,19 @@ services:
         condition: service_healthy
     networks:
       - n8n-network
-    command: >
-      sh -c "
-        echo 'Installing custom packages...' &&
-        npm install -g --no-audit --no-fund puppeteer playwright @playwright/test pg pgvector &&
-        echo 'Installing system dependencies...' &&
-        apk add --no-cache chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont &&
-        echo 'Setting Puppeteer config...' &&
-        export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true &&
-        export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser &&
-        echo 'Installing Playwright browsers...' &&
-        npx playwright install chromium &&
-        echo 'Setting permissions...' &&
-        mkdir -p /home/node/.n8n &&
-        chown -R node:node /home/node/.n8n &&
-        echo 'Starting n8n...' &&
-        n8n start
-      "
-
-networks:
-  n8n-network:
-    driver: bridge
+    
+    # Configurações de recursos para Easypanel
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    
+    # Health check personalizado
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s

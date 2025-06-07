@@ -24,7 +24,8 @@ RUN apk update && apk add --no-cache \
 # Set Puppeteer to skip downloading Chromium (we installed it via apk)
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/playwright
+    PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/playwright \
+    N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
 
 # Install Node.js dependencies in one layer
 RUN npm install -g --no-audit --no-fund \
@@ -40,6 +41,7 @@ RUN npx playwright install chromium
 # Create directory for custom nodes and set permissions
 RUN mkdir -p /home/node/.n8n/nodes \
     && mkdir -p /home/node/.cache/playwright \
+    && chmod 700 /home/node/.n8n \
     && chown -R node:node /home/node/.n8n \
     && chown -R node:node /home/node/.cache
 
@@ -63,4 +65,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1
 
 # Start n8n
-CMD ["n8n", "start"]
+CMD ["/usr/local/bin/node", "/usr/local/lib/node_modules/n8n/bin/n8n", "start"]
