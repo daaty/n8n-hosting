@@ -11,7 +11,7 @@ networks:
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: n8n_user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sua_senha_forte_123}
@@ -25,14 +25,14 @@ services:
       test: ['CMD-SHELL', 'pg_isready -U n8n_user -d n8n']
       interval: 30s
       timeout: 10s
-      retries: 15
-      start_period: 120s
+      retries: 10
+      start_period: 60s
 
   n8n:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: unless-stopped
+    restart: always
     environment:
       # Database Configuration
       DB_TYPE: postgresdb
@@ -51,17 +51,11 @@ services:
       WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678}
       GENERIC_TIMEZONE: America/Sao_Paulo
       N8N_LOG_LEVEL: info
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
       
       # Binary Data
       N8N_DEFAULT_BINARY_DATA_MODE: filesystem
       
-      # Security
-      N8N_SECURE_COOKIE: "false"
-      N8N_DISABLE_UI: "false"
-      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-your-encryption-key-here}
-      
-      # Browser automation
+      # Puppeteer/Playwright
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
       PLAYWRIGHT_BROWSERS_PATH: /home/node/.cache/playwright
@@ -76,10 +70,10 @@ services:
     networks:
       - n8n-network
     
-    # Extended health check for initial setup
+    # Health check
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
       interval: 60s
       timeout: 30s
-      retries: 5
-      start_period: 300s
+      retries: 3
+      start_period: 180s
