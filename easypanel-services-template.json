@@ -1,0 +1,133 @@
+{
+  "services": [
+    {
+      "name": "n8n-postgres",
+      "description": "PostgreSQL with pgvector extension for n8n",
+      "image": {
+        "type": "build",
+        "source": {
+          "type": "git",
+          "url": "https://github.com/daaty/n8n-hosting",
+          "branch": "easypanel-custom-n8n"
+        },
+        "dockerfile": "Dockerfile.postgres"
+      },
+      "env": [
+        {
+          "key": "POSTGRES_DB",
+          "value": "n8n"
+        },
+        {
+          "key": "POSTGRES_USER", 
+          "value": "n8n_user"
+        },
+        {
+          "key": "POSTGRES_PASSWORD",
+          "value": "CHANGE_THIS_PASSWORD"
+        }
+      ],
+      "mounts": [
+        {
+          "type": "volume",
+          "source": "postgres_data",
+          "target": "/var/lib/postgresql/data"
+        }
+      ],
+      "ports": [
+        {
+          "published": 5432,
+          "target": 5432
+        }
+      ]
+    },
+    {
+      "name": "n8n-app",
+      "description": "n8n with Playwright and Puppeteer support",
+      "image": {
+        "type": "build", 
+        "source": {
+          "type": "git",
+          "url": "https://github.com/daaty/n8n-hosting",
+          "branch": "easypanel-custom-n8n"
+        },
+        "dockerfile": "Dockerfile"
+      },
+      "env": [
+        {
+          "key": "DB_TYPE",
+          "value": "postgresdb"
+        },
+        {
+          "key": "DB_POSTGRESDB_HOST",
+          "value": "n8n-postgres"
+        },
+        {
+          "key": "DB_POSTGRESDB_PORT", 
+          "value": "5432"
+        },
+        {
+          "key": "DB_POSTGRESDB_DATABASE",
+          "value": "n8n"
+        },
+        {
+          "key": "DB_POSTGRESDB_USER",
+          "value": "n8n_user"
+        },
+        {
+          "key": "DB_POSTGRESDB_PASSWORD",
+          "value": "CHANGE_THIS_PASSWORD"
+        },
+        {
+          "key": "N8N_BASIC_AUTH_ACTIVE",
+          "value": "true"
+        },
+        {
+          "key": "N8N_BASIC_AUTH_USER",
+          "value": "admin"
+        },
+        {
+          "key": "N8N_BASIC_AUTH_PASSWORD",
+          "value": "CHANGE_THIS_PASSWORD"
+        },
+        {
+          "key": "WEBHOOK_URL",
+          "value": "https://your-domain.easypanel.host"
+        },
+        {
+          "key": "GENERIC_TIMEZONE",
+          "value": "America/Sao_Paulo"
+        },
+        {
+          "key": "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD",
+          "value": "true"
+        },
+        {
+          "key": "PUPPETEER_EXECUTABLE_PATH",
+          "value": "/usr/bin/chromium-browser"
+        }
+      ],
+      "mounts": [
+        {
+          "type": "volume",
+          "source": "n8n_data",
+          "target": "/home/node/.n8n"
+        }
+      ],
+      "ports": [
+        {
+          "published": 5678,
+          "target": 5678
+        }
+      ],
+      "depends_on": ["n8n-postgres"]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "postgres_data"
+    },
+    {
+      "name": "n8n_data"
+    }
+  ]
+}

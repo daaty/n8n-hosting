@@ -1,0 +1,12 @@
+# Redis - Serviço Individual para Easypanel
+FROM redis:7-alpine
+
+# Configurar Redis para persistência
+RUN mkdir -p /data
+VOLUME /data
+
+# Configuração básica do Redis
+CMD ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+
+# Expor porta
+EXPOSE 6379

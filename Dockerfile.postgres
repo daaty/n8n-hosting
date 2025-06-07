@@ -1,0 +1,14 @@
+# PostgreSQL com pgvector - Serviço Individual para Easypanel
+FROM pgvector/pgvector:pg16
+
+# Copiar script de inicialização
+COPY init-postgres.sh /docker-entrypoint-initdb.d/init-postgres.sh
+RUN chmod +x /docker-entrypoint-initdb.d/init-postgres.sh
+
+# Configurações padrão
+ENV POSTGRES_DB=n8n
+ENV POSTGRES_USER=n8n_user
+ENV POSTGRES_PASSWORD=changeme
+
+# Expor porta
+EXPOSE 5432
